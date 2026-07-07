@@ -653,6 +653,9 @@ namespace SqlNexus.McpServer
                     throw new NotSupportedException($"Tool not supported: {toolName}");
             }
 
+            // Scrub PII from tool output before returning to the agent
+            resultText = PiiScrubber.Scrub(resultText);
+
             return new McpToolResult
             {
                 Content = new List<McpContent>
