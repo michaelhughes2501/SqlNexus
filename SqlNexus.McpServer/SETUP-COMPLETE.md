@@ -22,7 +22,7 @@ Two MCP configuration files have been created with your SQL Server settings:
 {
   "mcpServers": {
     "sqlnexus_MCP": {
-      "command": "c:\\Users\\nishamohan\\OneDrive - Microsoft\\Desktop\\STAC\\SqlNexus\\SqlNexus.McpServer\\bin\\Release\\SqlNexus.McpServer.exe",
+      "command": "c:\\YourDefinedFilePath\\SqlNexus.McpServer.exe",
       "args": [
         "--server", "localhost\\SQLEXPRESS",
         "--database", "NexusDiagnosticsTest",
@@ -40,7 +40,7 @@ Two MCP configuration files have been created with your SQL Server settings:
   "mcpServers": {
     "sqlnexus_MCP": {
       "type": "stdio",
-      "command": "c:\\Users\\nishamohan\\OneDrive - Microsoft\\Desktop\\STAC\\SqlNexus\\SqlNexus.McpServer\\bin\\Release\\SqlNexus.McpServer.exe",
+      "command": "c:\\YourDefinedFilePath\\SqlNexus.McpServer.exe",
       "args": [
         "--server", "localhost\\SQLEXPRESS",
         "--database", "NexusDiagnosticsTest",
@@ -77,12 +77,12 @@ If the command palette method doesn't work:
 
 1. Create this directory if it doesn't exist:
    ```
-   C:\Users\nishamohan\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\
+   c:\Users\YourUser\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\
    ```
 
 2. Copy `mcp-config-vscode.json` to:
    ```
-   C:\Users\nishamohan\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\mcp.json
+   C:\Users\YourUser\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\mcp.json
    ```
 
 3. Restart VS Code completely
@@ -115,7 +115,7 @@ The MCP server requires a SQL Nexus database with imported diagnostic data:
 ### Using the Test Script:
 
 ```powershell
-cd "c:\Users\nishamohan\OneDrive - Microsoft\Desktop\STAC\SqlNexus\SqlNexus.McpServer"
+cd "c:\YourDefinedFilePath\SqlNexus.McpServer"
 .\Test-McpServer.ps1
 ```
 
