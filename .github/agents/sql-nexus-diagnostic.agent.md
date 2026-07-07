@@ -71,17 +71,17 @@ If you want to validate a finding, check for missed angles, or need deeper guida
 
 | Symptom / Situation | Skill file |
 |---------------------|------------|
-| General slowness / unknown bottleneck | `Skills/scenario-performance.md` |
-| High CPU / SOS_SCHEDULER_YIELD / compilations | `Skills/scenario-cpu.md` |
-| Blocking / deadlocks / LCK_M_* waits | `Skills/scenario-blocking.md` |
-| Memory pressure / RESOURCE_SEMAPHORE | `Skills/scenario-memory.md` |
-| I/O latency / PAGEIOLATCH / WRITELOG | `Skills/scenario-io.md` |
-| Specific slow query / per-execution drill-down | `Skills/scenario-query-deepdive-wait-analysis.md` |
-| Per-application performance breakdown | `Skills/scenario-application-analysis.md` |
-| Missing indexes / stale stats / plan cache | `Skills/scenario-index-optimization.md` |
-| Server config / LogScout scenario validation | `Skills/scenario-utility-diagnostics.md` |
-| Before/after or multi-period comparison | `Skills/scenario-comparative-analysis.md` |
-| Quick symptom → scenario mapping | `Skills/symptom-quick-reference.md` |
+| General slowness / unknown bottleneck | `AI/Skills/scenario-performance.md` |
+| High CPU / SOS_SCHEDULER_YIELD / compilations | `AI/Skills/scenario-cpu.md` |
+| Blocking / deadlocks / LCK_M_* waits | `AI/Skills/scenario-blocking.md` |
+| Memory pressure / RESOURCE_SEMAPHORE | `AI/Skills/scenario-memory.md` |
+| I/O latency / PAGEIOLATCH / WRITELOG | `AI/Skills/scenario-io.md` |
+| Specific slow query / per-execution drill-down | `AI/Skills/scenario-query-deepdive-wait-analysis.md` |
+| Per-application performance breakdown | `AI/Skills/scenario-application-analysis.md` |
+| Missing indexes / stale stats / plan cache | `AI/Skills/scenario-index-optimization.md` |
+| Server config / LogScout scenario validation | `AI/Skills/scenario-utility-diagnostics.md` |
+| Before/after or multi-period comparison | `AI/Skills/scenario-comparative-analysis.md` |
+| Quick symptom → scenario mapping | `AI/Skills/symptom-quick-reference.md` |
 
 ### Phase 3 — Synthesize and Report
 
@@ -123,17 +123,17 @@ Skill files contain curated decision trees, threshold values, SQL query referenc
 
 | Skill file | Covers |
 |------------|--------|
-| `Skills/scenario-performance.md` | General triage, unknown symptoms, first-pass |
-| `Skills/scenario-cpu.md` | CPU pressure, SOS_SCHEDULER_YIELD, compilations, plan cache |
-| `Skills/scenario-blocking.md` | Lock waits, deadlocks, blocking chains, LCK_M_* waits |
-| `Skills/scenario-memory.md` | Memory grants, RESOURCE_SEMAPHORE, clerk distribution |
-| `Skills/scenario-io.md` | PAGEIOLATCH, WRITELOG, file latency, read/write-heavy queries |
-| `Skills/scenario-query-deepdive-wait-analysis.md` | Single query deep dive, per-execution analysis |
-| `Skills/scenario-application-analysis.md` | Per-application CPU/reads/duration breakdown |
-| `Skills/scenario-index-optimization.md` | Missing indexes, stale statistics, plan cache bloat |
-| `Skills/scenario-utility-diagnostics.md` | Server config, LogScout scenario validation |
-| `Skills/scenario-comparative-analysis.md` | Before/after or multi-period comparison |
-| `Skills/symptom-quick-reference.md` | Fast symptom → scenario mapping |
+| `AI/Skills/scenario-performance.md` | General triage, unknown symptoms, first-pass |
+| `AI/Skills/scenario-cpu.md` | CPU pressure, SOS_SCHEDULER_YIELD, compilations, plan cache |
+| `AI/Skills/scenario-blocking.md` | Lock waits, deadlocks, blocking chains, LCK_M_* waits |
+| `AI/Skills/scenario-memory.md` | Memory grants, RESOURCE_SEMAPHORE, clerk distribution |
+| `AI/Skills/scenario-io.md` | PAGEIOLATCH, WRITELOG, file latency, read/write-heavy queries |
+| `AI/Skills/scenario-query-deepdive-wait-analysis.md` | Single query deep dive, per-execution analysis |
+| `AI/Skills/scenario-application-analysis.md` | Per-application CPU/reads/duration breakdown |
+| `AI/Skills/scenario-index-optimization.md` | Missing indexes, stale statistics, plan cache bloat |
+| `AI/Skills/scenario-utility-diagnostics.md` | Server config, LogScout scenario validation |
+| `AI/Skills/scenario-comparative-analysis.md` | Before/after or multi-period comparison |
+| `AI/Skills/symptom-quick-reference.md` | Fast symptom → scenario mapping |
 
 ---
 

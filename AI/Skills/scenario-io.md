@@ -163,21 +163,22 @@ ORDER BY total_wait_ms DESC;
 **Use When**: Confirming which files have high latency
 
 ```sql
-SELECT 
-    database_name,
-    file_type,
-    num_of_reads,
-    num_of_writes,
-    io_stall_read_ms,
-    io_stall_write_ms,
-    CASE WHEN num_of_reads = 0 THEN 0 
-         ELSE io_stall_read_ms / num_of_reads END AS avg_read_latency_ms,
-    CASE WHEN num_of_writes = 0 THEN 0 
-         ELSE io_stall_write_ms / num_of_writes END AS avg_write_latency_ms,
-    size_on_disk_bytes / 1024 / 1024 AS file_size_mb,
-    physical_name
-FROM tbl_FILE_STATS
-ORDER BY io_stall_read_ms + io_stall_write_ms DESC;
+SELECT
+    [database]         AS database_name,
+    [file]             AS file_name,
+    type_desc          AS file_type,
+    NumberReads        AS num_of_reads,
+    NumberWrites       AS num_of_writes,
+    IoStallReadMS      AS io_stall_read_ms,
+    IoStallWriteMS     AS io_stall_write_ms,
+    CASE WHEN NumberReads  = 0 THEN 0
+          ELSE IoStallReadMS  / NumberReads  END AS avg_read_latency_ms,
+    CASE WHEN NumberWrites = 0 THEN 0
+          ELSE IoStallWriteMS / NumberWrites END AS avg_write_latency_ms,
+    BytesOnDisk / 1024 / 1024 AS file_size_mb,
+    runtime
+FROM tbl_FileStats
+ORDER BY IoStallReadMS + IoStallWriteMS DESC;
 ```
 
 **Output Interpretation**:
