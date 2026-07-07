@@ -180,3 +180,4 @@ NexusReports/NexusReports.rptproj.rsuser
 .vscode/settings.json
 /SqlNexus.McpServer/mcp-config-copilot-cli.json
 /SqlNexus.McpServer/mcp-config-vscode.json
+.vscode/mcp.json
