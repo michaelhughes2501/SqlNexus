@@ -177,7 +177,6 @@ NexusReports/NexusReports.rptproj.rsuser
 /NexusReports/*.rdl.data
 
 .nuget/
-.vscode/mcp.json
 .vscode/settings.json
 /SqlNexus.McpServer/mcp-config-copilot-cli.json
 /SqlNexus.McpServer/mcp-config-vscode.json
