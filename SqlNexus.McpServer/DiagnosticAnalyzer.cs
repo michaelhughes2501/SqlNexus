@@ -1505,29 +1505,36 @@ namespace SqlNexus.McpServer
         }
 
         /// <summary>
-        /// Query #16 (SQL file stats): Per-database-file I/O latency from tbl_FILE_STATS.
+        /// Query #16 (SQL file stats): Per-database-file I/O latency from tbl_FileStats.
         /// Reports avg read/write latency per .mdf/.ldf/.ndf file — distinct from Perfmon disk counters.
+        /// tbl_FileStats is a time-series capture; the latest runtime snapshot is used so a single
+        /// cumulative row is returned per file.
         /// </summary>
         public string GetSqlFileIoStats()
         {
             const string query = @"
-                IF OBJECT_ID('dbo.tbl_FILE_STATS') IS NOT NULL
+                IF OBJECT_ID('dbo.tbl_FileStats') IS NOT NULL
                 BEGIN
+                    DECLARE @max_runtime DATETIME;
+                    SELECT @max_runtime = MAX(runtime) FROM tbl_FileStats;
+
                     SELECT
-                        database_name,
-                        file_type,
-                        num_of_reads,
-                        num_of_writes,
-                        io_stall_read_ms,
-                        io_stall_write_ms,
-                        CASE WHEN num_of_reads  = 0 THEN 0
-                             ELSE io_stall_read_ms  / num_of_reads  END AS avg_read_latency_ms,
-                        CASE WHEN num_of_writes = 0 THEN 0
-                             ELSE io_stall_write_ms / num_of_writes END AS avg_write_latency_ms,
-                        size_on_disk_bytes / 1024 / 1024 AS file_size_mb,
-                        physical_name
-                    FROM tbl_FILE_STATS
-                    ORDER BY io_stall_read_ms + io_stall_write_ms DESC;
+                        [database]         AS database_name,
+                        [file]             AS file_name,
+                        type_desc          AS file_type,
+                        NumberReads        AS num_of_reads,
+                        NumberWrites       AS num_of_writes,
+                        IoStallReadMS      AS io_stall_read_ms,
+                        IoStallWriteMS     AS io_stall_write_ms,
+                        CASE WHEN NumberReads  = 0 THEN 0
+                             ELSE IoStallReadMS  / NumberReads  END AS avg_read_latency_ms,
+                        CASE WHEN NumberWrites = 0 THEN 0
+                             ELSE IoStallWriteMS / NumberWrites END AS avg_write_latency_ms,
+                        BytesOnDisk / 1024 / 1024 AS file_size_mb,
+                        runtime
+                    FROM tbl_FileStats
+                    WHERE runtime = @max_runtime
+                    ORDER BY IoStallReadMS + IoStallWriteMS DESC;
                 END";
 
             return ExecuteQueryAndReturnJson(query, "SQL Server File I/O Statistics (per file latency)");
