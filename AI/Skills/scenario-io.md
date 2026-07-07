@@ -352,19 +352,23 @@ ORDER BY IoStallReadMS + IoStallWriteMS DESC;
 **Use When**: Multiple databases on instance
 
 ```sql
-SELECT 
-    database_name,
-    SUM(num_of_reads) AS total_reads,
-    SUM(num_of_writes) AS total_writes,
-    SUM(io_stall_read_ms) AS total_read_stall_ms,
-    SUM(io_stall_write_ms) AS total_write_stall_ms,
-    CASE WHEN SUM(num_of_reads) = 0 THEN 0
-         ELSE SUM(io_stall_read_ms) / SUM(num_of_reads) END AS avg_read_latency_ms,
-    CASE WHEN SUM(num_of_writes) = 0 THEN 0
-         ELSE SUM(io_stall_write_ms) / SUM(num_of_writes) END AS avg_write_latency_ms
-FROM tbl_FILE_STATS
-GROUP BY database_name
-ORDER BY total_read_stall_ms + total_write_stall_ms DESC;
+-- tbl_FileStats holds multiple runtime snapshots; use the latest for cumulative values.
+-- The [database] column in tbl_FileStats can be NULL, so resolve the name via tbl_DatabaseFiles.
+SELECT
+    COALESCE(df.Database_name, fs.[database], 'DbId=' + CAST(fs.DbId AS VARCHAR(10))) AS database_name,
+    SUM(fs.NumberReads)     AS total_reads,
+    SUM(fs.NumberWrites)    AS total_writes,
+    SUM(fs.IoStallReadMS)   AS total_read_stall_ms,
+    SUM(fs.IoStallWriteMS)  AS total_write_stall_ms,
+    CASE WHEN SUM(fs.NumberReads)  = 0 THEN 0
+         ELSE SUM(fs.IoStallReadMS)  / SUM(fs.NumberReads)  END AS avg_read_latency_ms,
+    CASE WHEN SUM(fs.NumberWrites) = 0 THEN 0
+         ELSE SUM(fs.IoStallWriteMS) / SUM(fs.NumberWrites) END AS avg_write_latency_ms
+FROM tbl_FileStats fs
+LEFT JOIN tbl_DatabaseFiles df
+    ON df.database_id = fs.DbId AND df.file_id = fs.FileId
+GROUP BY COALESCE(df.Database_name, fs.[database], 'DbId=' + CAST(fs.DbId AS VARCHAR(10)))
+ORDER BY SUM(fs.IoStallReadMS) + SUM(fs.IoStallWriteMS) DESC;
 ```
 
 **Output Interpretation**:

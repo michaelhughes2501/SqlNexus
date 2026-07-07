@@ -496,7 +496,7 @@ namespace SqlNexus.McpServer
                 new McpTool
                 {
                     Name = "get_sql_file_io_stats",
-                    Description = "Per-database-file I/O statistics from tbl_FILE_STATS: avg_read_latency_ms, avg_write_latency_ms, io_stall_read_ms, io_stall_write_ms per .mdf/.ldf/.ndf file. Thresholds: reads >20ms = slow, writes >10ms = slow for log. Distinct from analyze_io_performance (which uses Perfmon disk counters).",
+                    Description = "Per-database-file I/O statistics from tbl_FILESTATS: avg_read_latency_ms, avg_write_latency_ms, io_stall_read_ms, io_stall_write_ms per .mdf/.ldf/.ndf file. Thresholds: reads >20ms = slow, writes >10ms = slow for log. Distinct from analyze_io_performance (which uses Perfmon disk counters).",
                     InputSchema = new { type = "object", properties = new { } }
                 },
                 new McpTool

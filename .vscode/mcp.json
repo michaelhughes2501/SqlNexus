@@ -2,12 +2,12 @@
 	"servers": {
 		"sqlnexus_MCP": {
 			"type": "stdio",
-      "command": "c:\\path\\to\\SqlNexus.McpServer.exe",
+      "command": "C:\\Repos\\SQLNexusGHMCP\\SqlNexus.McpServer\\bin\\Release\\SqlNexus.McpServer.exe",
       "args": [
         "--server",
-        "localhost",
+        "localhost\\sql25",
         "--database",
-        "SQLNexus",
+        "perfstatchanges",
         "--trusted-connection",
         "true"
       ]

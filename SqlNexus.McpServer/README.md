@@ -219,7 +219,7 @@ SQL Nexus Database
   ├── tbl_NOTABLEACTIVEQUERIES  (active query snapshots)
   ├── vw_BLOCKING_CHAINS        (blocking analysis)
   ├── tbl_SPINLOCKSTATS         (spinlock stats)
-  ├── tbl_FILE_STATS            (I/O stats)
+  ├── tbl_FILESTATS            (I/O stats)
   ├── CounterData/CounterDetails (Perfmon)
   └── tbl_MissingIndexes        (index recommendations)
 ```
