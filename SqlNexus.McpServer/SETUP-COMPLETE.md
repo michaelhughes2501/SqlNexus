@@ -22,7 +22,7 @@ Two MCP configuration files have been created with your SQL Server settings:
 {
   "mcpServers": {
     "sqlnexus_MCP": {
-      "command": "c:\\YourDefinedFilePath\\SqlNexus.McpServer.exe",
+      "command": "c:\\path\\to\\SqlNexus.McpServer.exe",
       "args": [
         "--server", "localhost\\SQLEXPRESS",
         "--database", "NexusDiagnosticsTest",
@@ -40,7 +40,7 @@ Two MCP configuration files have been created with your SQL Server settings:
   "mcpServers": {
     "sqlnexus_MCP": {
       "type": "stdio",
-      "command": "c:\\YourDefinedFilePath\\SqlNexus.McpServer.exe",
+      "command": "c:\\path\\to\\SqlNexus.McpServer.exe",
       "args": [
         "--server", "localhost\\SQLEXPRESS",
         "--database", "NexusDiagnosticsTest",
@@ -115,7 +115,7 @@ The MCP server requires a SQL Nexus database with imported diagnostic data:
 ### Using the Test Script:
 
 ```powershell
-cd "c:\YourDefinedFilePath\SqlNexus.McpServer"
+cd "c:\path\to\SqlNexus.McpServer"
 .\Test-McpServer.ps1
 ```
 
