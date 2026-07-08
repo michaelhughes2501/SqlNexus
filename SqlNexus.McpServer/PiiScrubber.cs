@@ -1,45 +1,92 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace SqlNexus.McpServer
 {
     /// <summary>
-    /// Three-layer PII scrubber applied to all MCP tool outputs before returning to the agent.
+    /// Two-layer PII scrubber applied to all MCP tool outputs before returning to the agent.
+    /// Pure C# — zero external dependencies, no Python, no NuGet packages beyond the base framework.
     ///
-    /// Layer 1 — Regex  : GUIDs, IP addresses, computer names (WIN-* / DESKTOP-*)
-    /// Layer 2 — Presidio: NLP-based entity recognition (names, emails, phone numbers, etc.)
-    ///                      Invoked via a Python subprocess; skipped gracefully if Python /
-    ///                      Presidio is not available on the host.
-    /// Layer 3 — URL allowlist: URLs not in the approved list are replaced with &lt;Scrubbed_URL&gt;
+    /// Layer 1 — Regex: covers all structured PII realistically present in SQL Server diagnostic data:
+    ///   GUIDs, IPv4 addresses, auto-generated computer names, email addresses,
+    ///   Windows file paths containing usernames (C:\Users\..., C:\Documents and Settings\...),
+    ///   UNC paths (\\server\share), NT DOMAIN\username tokens, SQL login names
+    ///   appearing as JSON field values, and phone numbers.
+    ///
+    /// Layer 2 — URL allowlist: non-approved URLs are replaced with &lt;Scrubbed_URL&gt;.
     /// </summary>
     public static class PiiScrubber
     {
-        // ── Layer 1: Regex rules ────────────────────────────────────────────────
+        // ── Layer 1: Regex rules (applied in order) ─────────────────────────────
+        //
+        // Ordering matters: more specific patterns first to avoid partial matches
+        // being consumed by broader ones (e.g. UNC paths before NT domain tokens).
         private static readonly (Regex Pattern, string Replacement)[] s_regexRules =
         {
-            // GUIDs  e.g. 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+            // ── GUIDs  e.g. 6ba7b810-9dad-11d1-80b4-00c04fd430c8 ─────────────
             (new Regex(
                 @"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled),
              "<GUID>"),
 
-            // IPv4 addresses  e.g. 192.168.1.100
+            // ── Email addresses  e.g. john.smith@contoso.com ─────────────────
+            (new Regex(
+                @"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b",
+                RegexOptions.Compiled),
+             "<EMAIL>"),
+
+            // ── UNC paths  e.g. \\SQLSERVER01\Backups\db.bak ─────────────────
+            // Must come before NT DOMAIN\user to avoid the server name being
+            // matched as a domain token first.
+            (new Regex(
+                @"\\\\[A-Za-z0-9._\-]{2,}\\[^\s""'<>,;]+",
+                RegexOptions.Compiled),
+             "<UNCPATH>"),
+
+            // ── Windows user profile paths  e.g. C:\Users\johndoe\AppData ────
+            // Covers both modern (Users) and legacy (Documents and Settings) paths.
+            (new Regex(
+                @"[A-Za-z]:\\(?:[Uu]sers|[Dd]ocuments and [Ss]ettings)\\[^\\""'\s,;>]+",
+                RegexOptions.Compiled),
+             "<WINPATH>"),
+
+            // ── IPv4 addresses  e.g. 192.168.1.100 ───────────────────────────
             (new Regex(
                 @"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
                 RegexOptions.Compiled),
              "<IP>"),
 
-            // Windows auto-generated machine names  e.g. WIN-ABC1234, DESKTOP-XY98765
+            // ── Auto-generated Windows computer names  WIN-*, DESKTOP-* ──────
             (new Regex(
                 @"\b(win-|desktop-)[a-z0-9]{7,15}\b",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled),
              "<COMPUTER>"),
+
+            // ── NT DOMAIN\username tokens  e.g. CONTOSO\jsmith ───────────────
+            // Matches DOMAIN (2-20 chars) \ username (2-20 chars).
+            // Excludes paths already replaced above and known SQL Server system
+            // accounts (NT SERVICE\, NT AUTHORITY\).
+            (new Regex(
+                @"\b(?!NT SERVICE\\|NT AUTHORITY\\)[A-Za-z0-9_\-]{2,20}\\[A-Za-z0-9._\-]{2,20}\b",
+                RegexOptions.Compiled),
+             "<DOMAIN_USER>"),
+
+            // ── SQL login names appearing as JSON values ──────────────────────
+            // Targets the pattern: "LoginName": "somevalue" or "login_name": "somevalue"
+            // in the JSON output from ReadTrace.tblConnections and tbl_REQUESTS.
+            (new Regex(
+                @"(?<=""(?:LoginName|login_name|NTUserName|nt_user_name|HostName|host_name)""\s*:\s*"")[^""]+(?="")",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled),
+             "<SCRUBBED>"),
+
+            // ── Phone numbers  e.g. +1-800-555-1234, (425) 555-0100 ──────────
+            (new Regex(
+                @"\b(\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}\b",
+                RegexOptions.Compiled),
+             "<PHONE>"),
         };
 
-        // ── Layer 3: URL allowlist ──────────────────────────────────────────────
+        // ── Layer 2: URL allowlist ──────────────────────────────────────────────
         private static readonly Regex s_urlPattern =
             new Regex(@"https?://[^\s""'<>]+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -61,50 +108,19 @@ namespace SqlNexus.McpServer
             "https://www.microsoft.com",
         };
 
-        // ── Layer 2: Inline Presidio Python script ──────────────────────────────
-        // Written once to %TEMP%\pii_scrub_presidio.py on first use.
-        // Reads text from stdin, writes scrubbed text to stdout.
-        private const string PresidioPythonScript = @"
-import sys
-import spacy
-from presidio_analyzer import AnalyzerEngine
-from presidio_analyzer.nlp_engine import SpacyNlpEngine
-from presidio_anonymizer import AnonymizerEngine
-
-class LoadedSpacyNlpEngine(SpacyNlpEngine):
-    def __init__(self, loaded_spacy_model):
-        super().__init__()
-        self.nlp = {'en': loaded_spacy_model}
-
-nlp = spacy.load('en_core_web_lg')
-nlp_engine = LoadedSpacyNlpEngine(loaded_spacy_model=nlp)
-analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
-anonymizer = AnonymizerEngine()
-
-text = sys.stdin.read()
-results = analyzer.analyze(text=text, language='en')
-scrubbed = anonymizer.anonymize(text=text, analyzer_results=results).text
-sys.stdout.write(scrubbed)
-";
-
-        private static readonly string s_scriptPath =
-            Path.Combine(Path.GetTempPath(), "pii_scrub_presidio.py");
-
         // ── Public entry point ──────────────────────────────────────────────────
 
         /// <summary>
-        /// Scrubs PII from <paramref name="text"/> through all three layers and returns the result.
-        /// If the Presidio layer is unavailable (Python not found, missing packages, etc.)
-        /// layers 1 and 3 still apply and a warning is written to stderr.
+        /// Scrubs PII from <paramref name="text"/> and returns the sanitized result.
+        /// All processing is in-process — no external dependencies.
         /// </summary>
         public static string Scrub(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            text = ApplyRegex(text);        // Layer 1
-            text = ApplyPresidio(text);     // Layer 2
-            text = ApplyUrlAllowlist(text); // Layer 3
+            text = ApplyRegex(text);         // Layer 1
+            text = ApplyUrlAllowlist(text);  // Layer 2
 
             return text;
         }
@@ -116,62 +132,6 @@ sys.stdout.write(scrubbed)
             foreach (var (pattern, replacement) in s_regexRules)
                 text = pattern.Replace(text, replacement);
             return text;
-        }
-
-        private static string ApplyPresidio(string text)
-        {
-            try
-            {
-                // Write the helper script on first call
-                if (!File.Exists(s_scriptPath))
-                    File.WriteAllText(s_scriptPath, PresidioPythonScript, Encoding.UTF8);
-
-                var psi = new ProcessStartInfo
-                {
-                    FileName               = "python",
-                    Arguments              = $"\"{s_scriptPath}\"",
-                    UseShellExecute        = false,
-                    RedirectStandardInput  = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError  = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    CreateNoWindow         = true
-                };
-
-                using (var process = Process.Start(psi))
-                {
-                    if (process == null)
-                    {
-                        Console.Error.WriteLine("[PiiScrubber] Presidio layer skipped: Python process could not be started.");
-                        return text;
-                    }
-
-                    // Write as UTF-8 explicitly (StandardInputEncoding not available on .NET 4.8)
-                    using (var stdinWriter = new StreamWriter(process.StandardInput.BaseStream, Encoding.UTF8))
-                        stdinWriter.Write(text);
-
-                    string scrubbed = process.StandardOutput.ReadToEnd();
-                    string errors   = process.StandardError.ReadToEnd();
-
-                    bool exited = process.WaitForExit(30_000); // 30-second timeout
-                    if (!exited)
-                    {
-                        process.Kill();
-                        Console.Error.WriteLine("[PiiScrubber] Presidio layer timed out after 30 s; skipping.");
-                        return text;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(errors))
-                        Console.Error.WriteLine($"[PiiScrubber] Presidio stderr: {errors}");
-
-                    return string.IsNullOrEmpty(scrubbed) ? text : scrubbed;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[PiiScrubber] Presidio layer skipped ({ex.GetType().Name}): {ex.Message}");
-                return text; // graceful fallback — layers 1 and 3 still apply
-            }
         }
 
         private static string ApplyUrlAllowlist(string text)
