@@ -57,16 +57,15 @@ namespace SqlNexus.McpServer
                 // Store connection string � defer actual SQL connection until first tool call
                 _connectionString = builder.ConnectionString;
 
-                Console.Error.WriteLine($"{ServerName} v{ServerVersion} started");
-                Console.Error.WriteLine($"Connected to: {server}/{database}");
-                Console.Error.WriteLine($"Using Microsoft.Data.SqlClient");
+                Logger.Initialize($"{ServerName} v{ServerVersion} started");
+                Logger.Info($"Connected to: {server}/{database}");
+                Logger.Info("Using Microsoft.Data.SqlClient");
 
                 ProcessRequests();
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Fatal error: {ex.Message}");
-                Console.Error.WriteLine(ex.StackTrace);
+                Logger.Error("Fatal error", ex);
                 Environment.Exit(1);
             }
         }
@@ -112,7 +111,7 @@ namespace SqlNexus.McpServer
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error processing request: {ex.Message}");
+                    Logger.Error("Error processing request", ex);
                 }
             }
         }
@@ -122,6 +121,9 @@ namespace SqlNexus.McpServer
             var request = JsonConvert.DeserializeObject<JsonRpcRequest>(json);
             if (request == null)
                 return;
+
+            // Persist a small, truncated portion of every request for diagnostics
+            Logger.LogRequest(request);
 
             // Notifications have no id � handle but never write a response
             bool isNotification = request.Id == null;
@@ -167,6 +169,7 @@ namespace SqlNexus.McpServer
             }
             catch (Exception ex)
             {
+                Logger.Error($"Error handling method '{request.Method}'", ex);
                 return new JsonRpcResponse
                 {
                     Id = request.Id,
@@ -184,9 +187,9 @@ namespace SqlNexus.McpServer
         {
             if (_analyzer == null)
             {
-                Console.Error.WriteLine("Initializing SQL connection...");
+                Logger.Info("Initializing SQL connection...");
                 _analyzer = new DiagnosticAnalyzer(_connectionString);
-                Console.Error.WriteLine("SQL connection initialized.");
+                Logger.Info("SQL connection initialized.");
             }
             return _analyzer;
         }
@@ -196,7 +199,7 @@ namespace SqlNexus.McpServer
             // notifications/initialized signals client is ready � no response required
             // Log other unexpected notifications for diagnostics only
             if (!string.Equals(method, "notifications/initialized", StringComparison.OrdinalIgnoreCase))
-                Console.Error.WriteLine($"Notification received: {method}");
+                Logger.Warn($"Notification received: {method}");
         }
 
         static object HandleInitialize(Dictionary<string, object>? parameters)
