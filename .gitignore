@@ -177,3 +177,7 @@ NexusReports/NexusReports.rptproj.rsuser
 /NexusReports/*.rdl.data
 
 .nuget/
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
